@@ -1,0 +1,17 @@
+docs/screenshots/shatranj-01.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-04-59.png
+docs/screenshots/shatranj-02.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-05-39.png
+docs/screenshots/shatranj-03.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-05-45.png
+docs/screenshots/shatranj-04.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-05-50.png
+docs/screenshots/shatranj-05.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-06-45.png
+docs/screenshots/shatranj-06.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-07.png
+docs/screenshots/shatranj-07.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-12.png
+docs/screenshots/shatranj-08.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-15.png
+docs/screenshots/shatranj-09.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-17.png
+docs/screenshots/shatranj-10.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-19.png
+docs/screenshots/shatranj-11.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-48.png
+docs/screenshots/shatranj-12.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-53.png
+docs/screenshots/shatranj-13.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-07-59.png
+docs/screenshots/shatranj-14.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-08-20.png
+docs/screenshots/shatranj-15.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-08-28.png
+docs/screenshots/shatranj-16.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-09-30.png
+docs/screenshots/shatranj-17.png <- Mi captura perfecta - captura de pantalla 2026-06-25 09-14-17.png
