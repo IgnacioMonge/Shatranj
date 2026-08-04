@@ -60,10 +60,11 @@ shows development versions directly in its fixed banner slot and keeps the
 `version` prefix for releases. Do not duplicate a version literal in source
 code or build files.
 
-## Hardware Run Record
+## Real-Hardware Validation
 
-Create one directory below `hardware-runs/` named
-`YYYYMMDD-<target>-<purpose>` and record:
+Real-hardware results belong in the release notes, issue, or commit they
+support, not in a permanent directory of run logs. Record concise pass, fail,
+or pending results together with:
 
 - commit and artifact hashes;
 - 48K, Next-TAP, or NEX target and Next core/firmware when applicable;
@@ -71,8 +72,10 @@ Create one directory below `hardware-runs/` named
 - boot, asset load, palette, piece set, and About-screen results;
 - LOCAL/IP/port editing, cursor behavior, themes, hints, and START;
 - DIRECT and MQTT in both roles;
-- MOVE, chat, DRAW, RESET, RESIGN, TAKEBACK, RESTORE, reconnect, and liveness;
-- each result as pass, fail, or pending, with logs/photos when useful.
+- MOVE, chat, DRAW, RESET, RESIGN, TAKEBACK, RESTORE, reconnect, and liveness.
+
+Keep raw logs, captures, and photographs outside the repository unless one is
+required as durable evidence for a specific defect.
 
 For Next banking changes, repeat palette/set changes and About open/close cycles
 to exercise bank restoration and interrupt state.
