@@ -1,0 +1,38 @@
+[19:24:40]           == H1-G repeticion 3 — host silencioso en puerto 5000
+[19:24:40]           == En el ZX: DIRECT guest hacia la IP de este PC, haz UNA jugada y no toques nada mas
+[19:24:40]           -- esperando conexion del ZX (fase 1: partida)...
+[19:25:00]           -- conexion de 192.168.0.198:1334
+[19:25:00]           TX HELLO DIRECT HOST WHITE=GUEST
+[19:25:01]           RX HELLO DIRECT GUEST
+[19:25:01]           TX GAME START WHITE=GUEST
+[19:25:01]           RX HELLO DIRECT GUEST
+[19:25:01]           TX GAME START WHITE=GUEST
+[19:25:01]           RX ACK GAME START
+[19:25:03]           RX ACK GAME START
+[19:25:07]           RX PING
+[19:25:10]           RX MOVE 1 e2e4
+[19:25:10]           TX ACK 1
+[19:25:10]   +0.000s >> t0 fijado (ACK 1 enviado). Host mudo desde ahora. No toques el ZX.
+[19:25:15]   +4.359s RX PING
+[19:25:30]  +19.500s RX PING
+[19:25:50]  +40.125s >> conexion cerrada por el ZX a t0+40.125s
+[19:25:50]  +40.125s -- esperando conexion del ZX (fase 2: reconecta desde el ZX, partida nueva)...
+[19:25:50]  +40.171s -- conexion de 192.168.0.198:28693
+[19:25:50]  +40.171s TX HELLO DIRECT HOST WHITE=GUEST
+[19:25:59]  +48.718s >> socket pre-HELLO descartado; sigo esperando reconexion limpia
+[19:25:59]  +48.718s -- esperando conexion del ZX (fase 2: reconecta desde el ZX, partida nueva)...
+[19:25:59]  +48.765s -- conexion de 192.168.0.198:18554
+[19:25:59]  +48.765s TX HELLO DIRECT HOST WHITE=GUEST
+[19:25:59]  +49.265s RX HELLO DIRECT GUEST
+[19:25:59]  +49.265s >> handshake nuevo OK (sin replay). Puedes cortar aqui (Ctrl+C) o jugar.
+[19:25:59]  +49.265s TX GAME START WHITE=GUEST
+[19:26:00]  +49.406s RX HELLO DIRECT GUEST
+[19:26:00]  +49.406s >> handshake nuevo OK (sin replay). Puedes cortar aqui (Ctrl+C) o jugar.
+[19:26:00]  +49.406s TX GAME START WHITE=GUEST
+[19:26:00]  +49.625s RX ACK GAME START
+[19:26:00]  +49.625s == RESUMEN ==
+[19:26:00]  +49.625s    PING 1: t0+4.359s (esperado ~3.0s) FUERA DE TOLERANCIA
+[19:26:00]  +49.625s    PING 2: t0+19.500s (esperado ~18.0s) FUERA DE TOLERANCIA
+[19:26:00]  +49.625s    teardown: t0+40.125s (esperado ~33.0s) FUERA DE TOLERANCIA
+[19:26:00]  +49.625s    reconexion con HELLO nuevo: OK
+[19:26:00]  +49.625s == VEREDICTO r3: ROJO ==

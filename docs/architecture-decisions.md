@@ -15,7 +15,7 @@ Current generated names:
 
 ## 0002 - Chess Core Layout
 
-Decision: do not restructure the repository around `mcu-max`.
+Decision: keep chess rules owned by Shatranj, not vendored around `mcu-max`.
 
 Use this layout instead:
 
@@ -40,31 +40,47 @@ asm/
   esxdos/
   platform/
   overlay/rules/
-third_party/
-  mcu-max/
 client/
 tests/
 ```
 
-Reason: `mcu-max` is engine logic, not application architecture. Shatranj has
-separate responsibilities: Spectrum transport, PC GUI, protocol, build outputs,
-and later MQTT. Keeping `mcu-max` in `third_party` makes updates/replacement
-possible without coupling the whole project to upstream layout.
+Reason: Shatranj has separate responsibilities: Spectrum transport, PC GUI,
+protocol, build outputs, and MQTT. The old vendored `mcu-max` copy is no longer
+used by the build; keeping it would only preserve dead source.
 
-Integration contract:
+Current contract:
 
-- `third_party/mcu-max`: imported upstream source, kept unmodified.
-- `src/common/chess`: Shatranj-owned wrapper and board/FEN API.
-- `tests/rules`: perft and special-rule tests against the wrapper.
-- `src/pc/client`: consumes wrapper behavior first on PC.
-- Spectrum build: includes only the wrapper subset proven to fit memory.
+- The vendored `mcu-max` copy was removed after the project stopped
+  consuming it directly.
+- `src/common/chess`: Shatranj-owned rules, position, and coordinate APIs.
+- `src/common/chess/rules_compact.c`: shared compact rules path used by Spectrum and desktop clients.
+- `tests/rules`: perft and special-rule tests against the owned rules layer.
+- `src/pc/client`: consumes the owned common/Spectrum-compatible rules behavior.
 - `docs/source-layout.md`: canonical source map for current paths.
 
-Current caveat: `mcu-max` does not support underpromotion. Shatranj v0 accepts
-queen promotion and rejects rook/bishop/knight promotion until we add or replace
-that part.
+## 0003 - One Cross-Platform Desktop Client
 
-## 0003 - Spectrum Renderer
+Decision: Windows, macOS, and Linux use one Qt client and one shared desktop
+core. They are build/package variants, not independent applications.
+
+Dependency direction is enforced with separate CMake targets:
+
+```text
+shatranj-common -> shatranj-desktop-core -> shatranj-client
+```
+
+- `shatranj-common` is portable C and has no Qt dependency.
+- `shatranj-desktop-core` contains chess helpers, session adapters and
+  controller, transport framing, and save-game persistence. It uses Qt Core
+  and Network but not Widgets.
+- `shatranj-client` contains the Widgets UI and platform packaging resources.
+
+Reason: a single implementation prevents behavior drift between desktop
+platforms while target boundaries catch accidental UI/platform dependencies in
+the shared core at compile time. Platform-specific code is added only when a
+real OS API requires it; speculative interface hierarchies are rejected.
+
+## 0004 - Spectrum Renderer
 
 Decision: Spectrum screen rendering starts in ASM.
 
@@ -78,7 +94,7 @@ Boundary:
 - ASM owns rendering hot paths.
 - ChessZX is a reference for UI/piece organization, not vendored code.
 
-## 0004 - Spectrum Cold Overlays
+## 0005 - Spectrum Cold Overlays
 
 Decision: keep the Spectrum resident core 48K-first and add a Spectalk-style
 cold overlay file, `SHATRANJ.OVL`.
@@ -99,3 +115,18 @@ Current contract:
 
 This gives a safe protocol guard immediately while the full rules overlay is
 filled in.
+
+
+## 0006 - One Semantics, Two Implementations, One Judge
+
+Decision: the portable reducers are the canonical PC/reference implementation,
+while Spectrum and Next retain compact state machines optimized for their memory
+budget. Both implementations must satisfy the same transcript corpus and wire
+contract.
+
+Reason: linking the generic reducer into Spectrum was measured at roughly
+31 KiB of additional resident code and is not a viable way to obtain parity.
+Shared judges enforce behavior without imposing the same runtime layout.
+Target-specific expected results are forbidden: disagreement means one
+implementation or the contract is wrong. Transport and UI adapters translate
+events and execute actions; they do not decide session policy.
