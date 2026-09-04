@@ -1,0 +1,27 @@
+{
+  "files": [
+    {
+      "name": "boot.zx",
+      "sha256": "11cc423cc353d61bb52f0a1fd33f5b12ff235b44da03a9fcb5996ffbd414783d",
+      "size": 230
+    },
+    {
+      "name": "SHATRANJ.INS",
+      "sha256": "c5db03cadf0ad507427e02336f591e173a395f9b72d0933b2b421af012b19cfa",
+      "size": 3306
+    },
+    {
+      "name": "SHATRANJ.PKG",
+      "sha256": "960a4179c0dba7e072752141e96a5dc51579bfaafda54f6c8f2a095c49a94851",
+      "size": 43764
+    },
+    {
+      "name": "SHATRANJ.SCR",
+      "sha256": "7edaccd06aede50a4f9df124efa66f658861ed2d1f371650542d7fabee2f09c3",
+      "size": 6912
+    }
+  ],
+  "minimum_firmware": "0.9-6fc153a3",
+  "resource": "Shatranj",
+  "version": "1.2"
+}
