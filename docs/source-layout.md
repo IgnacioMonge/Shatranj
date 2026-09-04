@@ -5,8 +5,9 @@ do not place loose `.c`, `.h`, or `.asm` files at the old root paths.
 
 ## Common Code
 
-- `src/common/chess/`: chess position, FEN, legal-move wrapper, and compact
-  rules code shared by Spectrum and desktop clients.
+- `src/common/chess/`: chess position, FEN, legal-move wrapper, and the compact
+  C rules implementation used by desktop and host Spectrum tests as the
+  reference; shipped Spectrum targets do not link it.
 - `src/common/mqtt/`: MQTT packet encoder/parser used by host tests and PC
   code. Spectrum has its own size-constrained MQTT path.
 - `src/common/protocol/`: Shatranj game/session message grammar parse/build
@@ -32,8 +33,9 @@ do not place loose `.c`, `.h`, or `.asm` files at the old root paths.
 - `src/spectrum/session/`: compact production DIRECT/MQTT FSMs and connection
   helpers for ZX/Next. They own equivalent Z80 decisions and are judged against
   the canonical reducers by shared transcripts.
-- `src/spectrum/board/`: Spectrum board state, parsed move application, and
-  compact rules reference code. It may dispatch cold board/rules overlays only
+- `src/spectrum/board/`: Spectrum board state and parsed move application. Host
+  tests use the compact C rules reference; shipped targets dispatch the ASM
+  rules engine. Board code may dispatch cold board/rules overlays only
   through `spectrum/overlay/overlay.h`; overlay internals stay private.
 - `src/spectrum/ui/`: GUI state, status bar, timers, chat/move rendering, and
   input rendering. Product UI reads the board only through the immutable
@@ -60,19 +62,23 @@ do not place loose `.c`, `.h`, or `.asm` files at the old root paths.
 ## Desktop Code
 
 - `src/pc/client/`: the single Qt implementation for Windows, macOS, and Linux.
-  `DesktopSessionController` owns session reducers and timers;
-  `DesktopTransportCodec` owns TCP/MQTT framing; `SaveGameStore` owns desktop
-  persistence. `main.cpp` is the executable entrypoint; `main_window.cpp`,
+  `DesktopSessionController` owns one active `DesktopSessionAdapter` and the
+  session timers; `DesktopTransportCodec` owns TCP/MQTT framing;
+  `SaveGameStore` owns desktop persistence. `main.cpp` is the executable
+  entrypoint; `main_window.cpp`,
   `AppBanner`, and `PieceRenderer` are the Widgets UI.
 - `client/`: cross-platform desktop build wrappers, CMake targets, resources,
-  and packaging metadata only.
+  and packaging metadata only. Its concrete `shatranj-client-ui` target compiles
+  the Widgets implementation once for the application and integration test;
+  OS resources remain attached only to the executable.
 
 CMake enforces the dependency direction:
 
 ```text
 shatranj-common (portable C, no Qt)
     -> shatranj-desktop-core (Qt Core/Network, no Widgets)
-        -> shatranj-client (Qt Widgets/Svg and OS packaging)
+        -> shatranj-client-ui (Qt Widgets/Svg)
+            -> shatranj-client (entrypoint and OS packaging)
 ```
 
 ## Assembly
@@ -81,7 +87,8 @@ shatranj-common (portable C, no Qt)
 - `asm/uart/`: DIVMMC/divTIESUS UART backend.
 - `asm/esxdos/`: esxDOS file/overlay loader code.
 - `asm/platform/`: small platform primitives such as HALT.
-- `asm/overlay/rules/`: cold rules overlay entry and implementation.
+- `asm/overlay/rules/`: production cold rules overlay and engine shipped by
+  Classic, Next, and SpectraNext.
 
 ChessZX is a visual/architectural reference for board/UI flow and piece asset
 organization; do not vendor its source without a clear license.
@@ -98,6 +105,8 @@ organization; do not vendor its source without a clear license.
 - `tests/session/`: shared DIRECT/MQTT transcripts, common judges, and canonical
   plus host-compiled Spectrum runners.
 - `tests/spectrum/`: Spectrum board/rules, config, and session host checks.
+  Its ASM vector executes the production rules overlay and correlates it with
+  `src/common/chess/rules_compact.c`.
 - `tests/pc/`: desktop-core adapters, controller, persistence, framing, and
   failure-path tests.
 

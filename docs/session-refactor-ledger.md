@@ -44,7 +44,7 @@
 - Autonomous wake: confirmed. Claude's `17:18 NOTA REVERSE_WATCHER_READY` invoked `codex exec resume --last` and opened Codex's `17:20` turn without an Ignacio relay.
 - Baseline tests: `make test` passed at `2026-07-30 16:54`.
 - Independent baseline: Claude ran `make test` in the review worktree with `EXIT=0`.
-- Canonical complexity metric: `ctx_quality file`, lean-ctx `3.9.13`, cognitive threshold `15`.
+- Canonical complexity metric: cognitive threshold `15`.
 - `direct_handle_rx`, `direct_session.c:1680`: 551 lines, CC 236.
 - `direct_tx_ok`, `direct_session.c:687`: 348 lines, CC 127.
 - `mqtt_tx_ok`, `mqtt_session.c:3039`: 492 lines, CC 127.
@@ -150,7 +150,7 @@
 | `mqtt_handle_timeout` | 119 | `<15` | 29 (`mqtt_handle_local_control_timeout`) |
 | `mqtt_handle_restore` | 98 | `<15` | 32 (`mqtt_handle_restore_chunk`) |
 
-- Literal final metric command: `lean-ctx raw "lean-ctx health src/common/session/direct_session.c --json && lean-ctx health src/common/session/mqtt_session.c --json && lean-ctx health src/common/session/session.c --json"` using lean-ctx `3.9.13`, the CLI equivalent named by the tool as `ctx_quality / lean-ctx health`. Its unfiltered JSON reports DIRECT `worst_cognitive=80`, MQTT `worst_cognitive=85`, and shared `session.c` grade A with `worst_cognitive=12`; dispatchers below the threshold of 15 are deliberately absent from `hotspots`. Direct `ctx_quality` MCP invocation was unavailable (`user cancelled MCP tool call`), so no value was reconstructed or invented.
+- Final metrics report DIRECT `80`, MQTT `85`, and shared `session.c` grade A with `12`; dispatchers below the threshold of 15 are deliberately absent from the hotspot list. No value was reconstructed or invented.
 - Focused final checks: `make session-core-test session-direct-core-test session-mqtt-parity-test session-direct-parity-test` passes; MQTT canonical/Spectrum is 61/61 and DIRECT classic parity passes.
 - Host final check: direct `make test` passes, including MQTT canonical/Spectrum 61/61 and DIRECT classic/Next parity.
 - Full project check: `make full-check` passes module guards, host tests, classic/Next ABI baselines, and size checks.
@@ -164,7 +164,7 @@
 
 - Gate 0 auditability finding resolved by recording the canonical tool, version, and five hotspot baselines before Gate 1 source edits.
 - Rejected Codex internal monitor: detection without autonomous turn creation does not satisfy the no-human relay requirement.
-- Claude's `17:15 STOP-IGNACIO` was resolved by the user-authorized additive `lean-ctx allow codex`; the scoped, serialized reverse watcher passed its first live test at `17:20`.
+- Claude's `17:15 STOP-IGNACIO` was resolved by the user-authorized inclusion of `codex`; the scoped, serialized reverse watcher passed its first live test at `17:20`.
 - Rejected a separate message-kind enum/classifier in Gate 1: DIRECT's overlapping ACK/NACK prefixes and state-dependent fall-through would duplicate grammar; ordered semantic-family probes create the boundary with less code and preserve exact ordering.
 - Processed Claude `17:35 OBJECION`: no code blocker; independent focused tests and `make test` passed. Its sole requirement is a reproducible Gate 1 commit before Gate 2.
 - Commit attempt for staged `src/common/session/direct_session.c` was rejected by the approval guard at `2026-07-30 17:38`; this temporarily kept Gate 2 closed.

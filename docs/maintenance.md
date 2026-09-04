@@ -12,6 +12,8 @@ source-of-truth for their own domains.
 - `architecture-decisions.md`: accepted structural decisions and rejected
   alternatives.
 - `post-refactor-backlog.md`: active, optional, and hardware-only follow-up.
+- `cross-port-ledger.md`: what has crossed to or from MirrorShift, what was
+  rejected, and why.
 
 `docs/archive/` contains selected historical evidence. Removed handoffs,
 versioned proposals, review logs, and scratch notes remain available in Git
@@ -28,24 +30,57 @@ Protocol or session behavior changes in this order:
 4. Update the compact Spectrum state machine to satisfy the same transcript.
 5. Keep adapters mechanical: translate inputs and execute actions, but do not
    own protocol policy.
-6. Run `make full-check`; run `make client-test` when desktop code is affected.
+6. While editing, run the focused host test for the missing transcript. Close
+   the block with the single gate in the validation matrix; do not precede it
+   with `abi-check`, `size-check`, or a second `make test`.
 
 Do not weaken a judge to make an implementation pass. A newly exposed defect
 stops the change until it is understood.
 
 ## Validation Matrix
 
-| Change | Minimum local validation |
-|---|---|
-| Documentation or cosmetic text | Review the diff |
-| Qt UI or desktop core | `make client-test` |
-| Protocol, chess, or session semantics | Focused test, then `make full-check`; add `make client-test` for desktop changes |
-| Spectrum resident, overlay, banking, ABI, or size | `make full-check` |
-| Release candidate | `make full-check`, `make client-test`, and green CI |
+This matrix is the canonical close-out ladder. Root `AGENTS.md` and the Mex
+Spectrum pattern must follow it. Deduplicate by real Makefile effects, not by
+target names.
 
-`make full-check` is the canonical Spectrum/host gate: module boundaries,
-shared transcript tests, classic and Next overlay ABI, size contracts, and NEX
-packaging. CI also runs the Qt client on Linux, macOS, and Windows.
+| Change | While editing | When closing the block |
+|---|---|---|
+| Documentation or cosmetic text | Review the diff | Stop |
+| Qt UI or desktop core | Focused desktop test if one exists | `make client-test`. On macOS also `make client` to install the inspectable app. |
+| Protocol, chess, or session semantics | Focused host test (`session-*-test` or equivalent) | `make test`. Add `make client-test` only if desktop code changed. Use `make full-check` only when the close-out also needs linked Spectrum ABI/size, or at a release/commit checkpoint. |
+| Overlay ASM/C with no entry, API, or layering change | Focused ASM vector or overlay host test | `make overlay-size OVERLAY=NAME` when that overlay can grow (reuses `build/SHATRANJ.map`; does not relink TAP; fails if the config stamp is newer than the map). `make size-check` only when resident limits are also required or the map is missing. |
+| Overlay entry, public API, or module layering | `make module-guards` (includes static `overlay-entry-abi-check`) | `make abi-check` once. If size limits also apply, run `make full-check` once instead of `abi-check` and then `size-check`. |
+| Resident, banking, or size-sensitive Spectrum | Focused host or ASM test | `make size-check` for Classic limits, or `make full-check` when ABI and host tests are also required. |
+| Next-UART diagnostic TAP | — | `make next-size-report` only when that TAP is in the request. It is not part of `full-check` or CI. |
+| SpectraNext | — | Only when the request names SpectraNext. It is not part of `full-check`. |
+| Release candidate | — | One `make full-check`, `make client-test` if desktop is in scope, and green CI. |
+
+### Close-out rules
+
+- Run one large firmware/host gate per closed block. Do not start
+  `full-check`, `abi-check`, `size-check`, `tap`, or `nex` as a session
+  baseline before editing.
+- Prefer the single Make target whose prerequisites already cover the needed
+  effects. Separate `make` processes do not share those rebuilds.
+- `make full-check` is `module-guards test abi-check size-check nex-size-report`.
+  One invocation rebuilds Classic TAP once and Next NEX once, then runs host
+  tests. Do not run those targets as extra makes before or after it.
+- `make abi-check` rebuilds Next NEX and Classic TAP. It is not a Python-only
+  guard; `module-guards` already covers static overlay entry ABI. Do not also
+  run `make tap`, `make nex`, `make size-check`, or `make nex-size-report`.
+- `make size-check` rebuilds Classic TAP. Do not run `make tap` first.
+- `make test` and `make module-guards` do not invoke zcc.
+- `make overlay-size OVERLAY=NAME` rebuilds one overlay against an existing
+  map and checks the 2048-byte cap plus the size baseline. It does not pack
+  the atlas or relink TAP. It refreshes `spectrum_config.json` and fails if
+  the map is missing or older than that stamp.
+- `make next-size-report` builds a third firmware (`build/next/`, Next-UART
+  TAP) that CI does not run.
+
+`make full-check` remains the canonical Spectrum/host close-out when the block
+needs module boundaries, shared transcript tests, classic and Next overlay ABI,
+size contracts, and NEX packaging together. CI also runs the Qt client on
+Linux, macOS, and Windows.
 
 A software gate cannot stand in for real hardware. Missing hardware evidence is
 reported as pending, never inferred as passing.

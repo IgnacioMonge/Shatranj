@@ -147,8 +147,21 @@ MQTT `PUBACK` is never treated as game acceptance.
 
 ## RESTORE
 
-MQTT RESTORE is host-initiated and uses the directional game topic
-(`w2b`/`b2w`) for every live, non-retained frame. Its grammar is:
+MQTT RESTORE is role-symmetric and uses the directional game topic
+(`w2b`/`b2w`) for every live, non-retained frame. The initiator sends `RQ`; the
+receiver presents the restore decision and owns snapshot application:
+
+- On acceptance, the receiver sends `RY`, after which the initiator sends
+  `RS00` and `RS01` in order.
+- The receiver applies only the complete two-chunk snapshot and sends `RA` on
+  success, or `RN` on rejection, malformed data, or receive expiry.
+
+Either linked peer may be the initiator. The same `RQ`/`RY`/`RN` exchange,
+ordered chunks, retry rules, and receiver idempotency therefore apply in both
+directions; the initiator/receiver role owns the decision and transfer phase,
+not a fixed side label.
+
+The wire grammar is:
 
 ```text
 RQ
@@ -161,14 +174,17 @@ RA
 Each `RS00`/`RS01` frame is exactly 35 wire bytes: the four-byte tag, one space,
 and 30 ASCII Base64URL characters. Together they carry the fixed 60-character,
 unpadded Base64URL encoding of the 45-byte binary save record; no NUL terminator
-is transmitted. The host sends `RQ`; the guest accepts with `RY` or rejects
-with `RN`. After `RY`, the host sends `RS00` then `RS01`. The guest applies only
-the complete snapshot and answers `RA` on success or `RN` on failure.
+is transmitted.
 
-The control timer bounds every wait. The host retries `RQ` while awaiting `RY`
-and retries the ordered chunk pair while awaiting `RA`. The guest re-sends `RY`
-for a duplicate accepted `RQ`, waits a bounded time for incomplete chunks, and
-sends `RN` when that receive window expires. A host may cancel with `RN` only
-before `RY`; cancellation after chunk transmission begins is ignored. Exact
-post-apply chunk duplicates re-send `RA` without another apply; conflicting
-chunks receive `RN`.
+The control timer bounds every wait. The initiator retries `RQ` while awaiting
+`RY`, then retries the ordered chunk pair while awaiting `RA`. The receiver
+re-sends `RY` for a duplicate accepted `RQ`, waits a bounded time for missing
+chunks, and sends `RN` when that receive window expires. The initiator may
+cancel with `RN` only before `RY`; cancellation after chunk transmission
+begins is ignored. Exact post-apply chunk duplicates re-send `RA` without
+another apply; conflicting chunks receive `RN`. These retry and idempotency
+rules apply identically in either direction.
+
+Compatibility: an older host-only peer may reject a guest-initiated `RQ` with
+`RN` without mutating its board. Host-initiated RESTORE remains interoperable
+with that peer; no wire format change is introduced.

@@ -3,7 +3,7 @@
 [English](README.md) · [Guía de usuario](../README.es.md) · [Guía del cliente Qt](../client/README.es.md)
 
 Este directorio contiene la documentación de ingeniería mantenida para
-Shatranj 1.1. Los dos contratos normativos son deliberadamente independientes
+Shatranj 1.2. Los dos contratos normativos son deliberadamente independientes
 del transporte y del cliente:
 
 - [`wire-contract.md`](wire-contract.md): payloads, framing TCP Direct por
@@ -19,8 +19,8 @@ del transporte y del cliente:
 - [`maintenance.md`](maintenance.md): reglas soportadas de build, validación y
   mantenimiento de releases.
 
-La implementación es común para Qt Windows/macOS/Linux, ZX Spectrum Classic y
-Spectrum Next. El C común posee las reglas de ajedrez, protocolo, sesión y
+La implementación es común para Qt Windows/macOS/Linux, ZX Spectrum Classic,
+Spectrum Next y SpectraNext. El C común posee las reglas de ajedrez, protocolo, sesión y
 formato de guardado; el código de escritorio las adapta a Qt y los clientes
 Spectrum usan su runtime compacto por target. El parseo y la construcción del
 protocolo deben permanecer en common; los dos contratos anteriores son la

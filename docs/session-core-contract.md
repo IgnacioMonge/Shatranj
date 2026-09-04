@@ -57,10 +57,11 @@ All storage is caller-owned. There is no allocation and no callback from the
 core into an adapter.
 
 `SessionWorkspace` is persistent caller-owned storage shared with the core. It
-holds the pending five-byte move, the pending local chat text, or the 60-byte
-restore payload across later TX-result events. These uses are mutually
-exclusive. It replaces equivalent target-local pending buffers; it is not
-additive scratch.
+holds independent fields for the pending five-byte move, pending local chat
+text, and 60-byte restore payload across later TX-result events. A local
+CHAT or MOVE may therefore update its own field without overwriting an
+applied RESTORE's duplicate chunks. It replaces equivalent target-local
+pending buffers; it is not transient scratch.
 
 ## Initial Configuration
 
@@ -165,8 +166,9 @@ the source, not the destination.  Its editor caps content at 42 bytes and
 maintains a NUL inside the 43-byte region ending at `0x5edd`.  Compile-time
 layout guards keep input history and status between that source and
 `chess_board` at `0x5f60`, followed by the rules board at `0x5fa0`, the overlay
-context at `0x5fe0`, and overlay code at `0x6800`.  The target wrapper passes
-the stack destination through the context; it does not alias either board.
+context at `0x5fe0`. Classic overlay code starts at `0x6800`; the Next NEX maps
+its selected 8 KiB overlay page at `0x6000`. The target wrapper passes the stack
+destination through the context; it does not alias either board.
 
 Both ZX and Next overlay loaders enter this parser under DI and return through
 their EI trampoline.  The parser makes no call that re-enables interrupts, so
@@ -198,7 +200,10 @@ Action data:
 - `ACT_LINK_CLOSE`: link id to close.
 - `ACT_DELIVER_GAME`: typed delivery id, `uint16_t` ply/request value, and an
   already-parsed payload slice. The adapter must not parse a wire verb.
-- `ACT_SESSION_CHANGED`: READY, BUSY, STARTED, or ENDED.
+- `ACT_SESSION_CHANGED`: READY, BUSY, STARTED, or ENDED. ENDED also carries
+  `NONE`, `LOCAL_BYE`, `REMOTE_BYE`, or `TRANSPORT_LOST`; adapters use this
+  target-neutral cause for presentation and never reparse BYE. Non-ENDED
+  actions carry `NONE`.
 - `ACT_SIDE_CHANGED`: local color and session id.
 
 There may be multiple actions per step, but at most one `ACT_SEND`. A
@@ -240,13 +245,31 @@ A CHAT delivery stores `SESSION_CHAT_LOCAL` or `SESSION_CHAT_REMOTE` in its
 existing `value` field. The adapter uses that origin only to choose the visible
 speaker label; it does not infer origin from TX timing or hidden reducer state.
 
+`MACH ZX`, `MACH NXT`, `MACH MAC`, `MACH LNX`, `MACH PC`, and `MACH SPCX` are informational
+platform announcements. A valid announcement emits `ACT_DELIVER_GAME` with
+kind `SESSION_DELIVER_PLATFORM`, its existing `value` set to the corresponding
+`NETCHESS_PLAT_*` value, and no payload or delivery id. The common reducers
+parse the counted slice directly; they do not call the unbounded wire parser.
+DIRECT accepts it only from the active link after peer-ready and retains its
+normal valid-payload liveness reset/rearm. MQTT accepts it only on the live,
+non-retained directional game route and never credits liveness. Unknown,
+malformed, retained, wrong-route, and pre-ready announcements are ignored.
+The compact Spectrum event remains compact; its parity runner normalizes the
+known MACH status update to this same typed observation. This reuses the
+existing game action fields and adds no `SessionAction` or `SessionState`
+storage.
+
 ## DIRECT Normalization Decisions
 
 The pre-refactor PC and Spectrum paths disagree on several crossed controls.
 The common reducer freezes one explicit behavior for every disagreement. A busy
 GAME START is NACKed without disturbing the operation already pending; crossed
 DRAW is ACKed and advances to RESET; crossed RESET during an active game is
-NACKed BUSY; and a HOST receiving RQ responds RN without prompting. PING is
+NACKed BUSY; and either DIRECT role may initiate RQ. An idle receiver asks the
+user for a decision, while a busy receiver answers RN. Duplicate RQ handling
+is idempotent: an already-open prompt is not duplicated, an accepted/in-flight
+request re-sends RY, and an already applied transfer does not apply again.
+PING is
 always ACKed once the peer is ready, including while another control is pending.
 RESIGN is unilateral and idempotent: every received RESIGN is ACKed, it is
 applied at most once, and a crossed RESIGN ACK handoff clears the local RESIGN
@@ -272,6 +295,13 @@ Duplicate HELLO is consumed without another HELLO, preventing an echo loop.
 An otherwise valid MOVE whose ply is not the next expected ply is rejected as
 `NACK <ply> SYNC`; `SYNC` is the normative reason token for this divergence.
 Older peers may treat the reason as advisory, as required by the wire grammar.
+An otherwise valid fresh MOVE received while a decision prompt or correlated
+domain request is pending is rejected as `NACK <ply> BUSY`. A retransmission
+of an already committed ply remains idempotent and is ACKed. A rejected-MOVE
+duplicate latch compares the complete move
+payload as well as its ply: an exact replay repeats the prior result, while a
+different move at that ply is validated as a fresh request. A busy GAME START
+is rejected as `NACK GAME START BUSY` without disturbing the pending operation.
 
 DIRECT liveness is intentionally role-asymmetric and uses elapsed protocol
 time, not a raw count of polling calls. A ready guest sends PING after 150 idle
@@ -314,8 +344,12 @@ another.
 
 CHAT is not a control operation and remains available while START, RESET, DRAW,
 RESIGN, or TAKEBACK is pending. A pending MOVE or RESTORE still blocks local
-CHAT because both use the shared retry workspace. Adapters must reject a second
-control command as pending rather than reporting that the game has not started.
+CHAT so their correlated transfer remains the only active transaction. Adapters
+must reject a second control command as pending rather than reporting that the
+game has not started.
+After a RESTORE is applied, its exact-chunk duplicate cache remains valid across
+local CHAT and MOVE transmissions; those transmissions update only their own
+workspace fields, so the restore bytes are not overwritten.
 
 An incoming TAKEBACK while a local MOVE is awaiting its peer result is rejected
 as bare `NACK <ply>`; neither the committed ply nor the in-flight move is
@@ -419,10 +453,14 @@ remain unchanged.
 
 For a guest that is READY but has not started a game, a valid live
 `H <color> <new-session>` replaces the dead bootstrap identity. The guest
-cancels liveness for the old id, adopts the new side/session, performs a fresh
-retained-ONLINE/live-JOIN claim and reaches READY once. This is a fresh
-pre-game handshake, never game resume or replay. A different session remains
-stale and inert in ACTIVE or OVER.
+cancels liveness for the old id and invalidates every RESTORE owned by the old
+peer: local request, remote prompt, partial receive, RA wait, and applied
+duplicate cache. A pending local request or remote prompt reports cancellation
+to its adapter so the UI can close; no `RN` is sent to the new peer. The guest
+then adopts the new side/session, performs a fresh retained-ONLINE/live-JOIN
+claim and reaches READY once. A later decision or `RA` from the discarded
+exchange is inert. This is a fresh pre-game handshake, never game resume or
+replay. A different session remains stale and inert in ACTIVE or OVER.
 
 ## Link Loss Contract
 
@@ -518,8 +556,8 @@ common C-string grammar without copying or adding a second parser.
 The first exception is the fixed 60-byte local restore buffer. It holds the 60
 ASCII characters of the unpadded Base64URL encoding, not the 45-byte binary
 save record, and is validated byte-for-byte without reading `payload[60]`.
-This allows the existing 60-byte save buffer to become `SessionWorkspace`
-without one extra BSS byte.
+The move, chat, and restore fields are independent so a pending local message
+cannot overwrite an applied restore's duplicate bytes.
 The other exception is the exactly one-byte phase detail on an accepted remote
 RESTORE result. It is range-checked directly as `READY`, `ACTIVE`, or `OVER`
 and never passed to a string parser.
@@ -528,14 +566,14 @@ RESTORE remains core session policy for both DIRECT and MQTT:
 RQ/RY/RN/RS00/RS01/RA are parsed and sequenced by the reducer. File I/O,
 snapshot encoding/decoding, and applying the delivered snapshot remain domain
 work reported through `EV_GAME_RESULT`.
-The host's local request phase/value and the guest's accepted game-result
-phase/value keep `SessionState.phase` and `SessionState.current_ply`
+The initiator's local request phase/value and the receiver's accepted
+game-result phase/value keep `SessionState.phase` and `SessionState.current_ply`
 synchronized with the restored board. While a local restore waits for RY/RA,
 its phase is packed into unused high bits of `restore_mask`; this adds no state
 or event-union bytes. The next request therefore uses both the restored game
 phase and ply rather than either pre-restore value.
 
-For MQTT, only the host initiates RESTORE and every frame uses
+For MQTT, either linked peer may initiate RESTORE and every frame uses
 `SESSION_ROUTE_GAME` on the directional game topic, live and non-retained.
 `RQ`, `RY`, `RN`, and `RA` are exact two-byte ASCII frames. `RS00` and `RS01`
 are each exactly 35 wire bytes: a five-byte `RS0n ` prefix followed by 30 ASCII
@@ -543,7 +581,7 @@ Base64URL characters, with no padding or NUL terminator. The ordered success
 path is `RQ -> RY -> RS00 -> RS01 -> RA`; the receiver emits one 60-character
 encoded domain delivery only after both chunks arrive.
 
-The CONTROL timer bounds the exchange. A local sender retries `RQ` while
+The CONTROL timer bounds the exchange. A local initiator retries `RQ` while
 waiting for `RY`, then retries the ordered chunk pair while waiting for `RA`.
 A receiver re-sends `RY` for an accepted duplicate `RQ`, waits a bounded number
 of control deadlines for missing chunks, and sends `RN` on rejection, apply
@@ -628,7 +666,10 @@ DATA, BSS, overlay sizes, and SP/BSS gap against tag
 
 - Final resident CODE: no more than baseline plus 128 bytes.
 - Final BSS: no larger than baseline.
-- No overlay may exceed its baseline size or the 2048-byte hard limit.
+- No overlay may exceed its baseline size or executable target limit: 2048
+  bytes for Classic and 4096 bytes for Spectranext and the Next NEX. Next uses
+  physical 8192-byte pages; their upper 4096 bytes mirror immutable resident
+  code and are not overlay capacity.
 - The SP/BSS gap may not shrink.
 - New state replaces old globals; it must not remain additive after migration.
 - `src/common/session/` and its generic action executor are not linked into the

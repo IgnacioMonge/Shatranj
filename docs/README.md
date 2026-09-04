@@ -3,7 +3,7 @@
 [Español](README.es.md) · [User guide](../README.md) · [Qt client guide](../client/README.md)
 
 This directory contains the maintained engineering documentation for Shatranj
-1.1. The two normative contracts are deliberately transport- and client-neutral:
+1.2. The two normative contracts are deliberately transport- and client-neutral:
 
 - [`wire-contract.md`](wire-contract.md) — payloads, Direct newline-delimited
   TCP framing, MQTT topics, restore exchange, and compatibility rules.
@@ -19,7 +19,7 @@ This directory contains the maintained engineering documentation for Shatranj
   release-maintenance rules.
 
 The implementation is shared across Qt Windows/macOS/Linux, ZX Spectrum
-Classic, and Spectrum Next. Common C owns chess, protocol, session, and save
+Classic, Spectrum Next, and SpectraNext. Common C owns chess, protocol, session, and save
 format rules; desktop code adapts them to Qt and the Spectrum clients use the
 compact target-specific runtime. Keep protocol parsing/building in common code
 and treat the two contracts above as the source of truth.

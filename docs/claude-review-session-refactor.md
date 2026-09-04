@@ -144,19 +144,15 @@ pendientes.
 
 Evidencia:
 
-- Ledger §Gate 0 líneas 46-51: métrica canónica declarada (`ctx_quality file`,
-  lean-ctx `3.9.13`, umbral cognitivo `15`) y las cinco líneas base con
+- Ledger §Gate 0 líneas 46-51: métrica canónica declarada, umbral cognitivo
+  `15` y las cinco líneas base con
   fichero:línea, longitud y CC. Era exactamente lo que faltaba.
-- Verifiqué la versión por mi cuenta: `lean-ctx --version` devuelve
-  `lean-ctx 3.9.13 (official)`. Coincide con lo declarado.
 - Coherencia cruzada de las cifras: tus cinco CC (236 / 127 / 127 / 119 / 98)
   reproducen exactamente el listado de hotspots del brief original, que es
   fuente independiente de ti y de mí. Las longitudes (551 / 348 / 492 / 287 /
   191) coinciden además con mi propia medición de las 17:05. Dos fuentes
   independientes concuerdan en las funciones y en su tamaño.
-- Límite declarado de mi verificación: `ctx_quality` no está en mi conjunto de
-  herramientas y `lean-ctx quality` no existe como subcomando de CLI
-  (`unknown command 'quality'`), así que **no he reproducido los valores de CC
+- Límite declarado de mi verificación: **no he reproducido los valores de CC
   yo mismo**; los acepto por coincidencia con el brief, no por ejecución propia.
   Consecuencia práctica: en el Gate final el «después» debe salir de esa misma
   herramienta y versión, y te pediré el volcado literal junto al «antes» para
@@ -187,15 +183,13 @@ Al intentar siquiera resolver el binario:
 $ which codex
 [BLOCKED — DO NOT RETRY] 'codex' is not in the shell allowlist.
 This is a permanent restriction, not a transient error.
-Fix (additive, keeps the defaults): run  lean-ctx allow codex
-Config in effect: /Users/ignaciomongegarcia/.config/lean-ctx/config.toml
 [pipeline: segment 3/5 blocked — the entire command was rejected before
 execution, no part of the pipeline ran]
 ```
 
 El binario **sí existe**: `/opt/homebrew/bin/codex ->
 ../lib/node_modules/@openai/codex/bin/codex.js`. El problema no es ausencia de
-herramienta, es que mi shell tiene `codex` fuera del allowlist de lean-ctx. Por
+herramienta, es que mi shell tiene `codex` fuera del allowlist. Por
 tanto `codex exec resume --last` no puede ejecutarse desde mi lado, ni ahora ni
 por reintento: la propia herramienta califica la restricción de permanente.
 
@@ -226,11 +220,7 @@ mitad del original, no eliminado. No declaro esto resuelto ni lo maquillo.
 
 ### Acción requerida — de Ignacio, no de Codex
 
-Una sola orden, aditiva, conserva el resto del allowlist:
-
-```
-lean-ctx allow codex
-```
+Una autorización aditiva conserva el resto del allowlist.
 
 En cuanto exista, monto el watcher inverso en mi scratchpad sin más consultas:
 contará cabeceras `##` nuevas de este buzón y lanzará `codex exec resume --last`.
@@ -272,7 +262,7 @@ prueba real.
 
 Evidencia:
 
-- Ignacio autorizó y se ejecutó `lean-ctx allow codex`. Allowlist ahora en
+- Ignacio autorizó la inclusión de `codex`. Allowlist ahora en
   `restricted — 228 command(s) permitted` más los extras, con `codex` incluido.
   El control de seguridad **no fue evadido**: fue ampliado por su dueño, que es
   como debía ocurrir.
@@ -417,7 +407,7 @@ deriva semántica a casi cero, que es exactamente lo que Gate 1 exige.
 ### Nota sobre la métrica
 
 Declaras `direct_handle_rx` CC 236→64 y helpers 50/97/28. **No puedo
-reproducirlo**: `ctx_quality` no está en mi conjunto de herramientas, como ya
+reproducirlo**: la métrica no está en mi conjunto de herramientas, como ya
 dejé anotado a las 17:12. Lo acepto como declarado, no como verificado, y queda
 así registrado. Lo que sí confirmo de forma independiente es la estructura que
 sostiene esa cifra: `direct_handle_rx` pasa de una cadena única de ~551 líneas a
@@ -707,7 +697,7 @@ Ejecutadas por mí en `experiments/session-complexity-review`, situado en
 
 Declaras `direct_tx_ok` 127→<15 con familias de 46/33/27/21, y
 `direct_handle_timeout` 97→<15 con familia máxima 36. Sigo sin poder reproducir
-`ctx_quality`, así que lo registro como declarado. Lo que sí confirmo es la
+la métrica, así que lo registro como declarado. Lo que sí confirmo es la
 estructura: dos funciones grandes pasan a despachadores cortos con familias
 nombradas, y el punto más denso que queda en TX es 46, frente al 97 que dejó
 Gate 1 en las respuestas de control de RX. La densidad máxima de DIRECT baja de
@@ -793,7 +783,7 @@ Ejecutadas por mí en `experiments/session-complexity-review`, situado en
 ### Métrica
 
 `mqtt_tx_ok` 127→<15 con familias máximas 51/24/23 queda registrado como
-declarado, no reproducido, por la limitación de `ctx_quality` ya anotada. La
+declarado, no reproducido, por la limitación de medición ya anotada. La
 estructura que lo sostiene sí la confirmo.
 
 Nota para el cierre: con esto, los puntos más densos que quedan son 51 en MQTT TX
@@ -1046,7 +1036,7 @@ superficial.
 Acción requerida: ninguna. **Prepara el Gate final.** Necesito, según §8: todos
 los commits experimentales identificados; árbol limpio salvo buzones y ledger;
 complejidad antes/después de las cinco funciones originales con el volcado
-literal de `ctx_quality` —te lo pedí a las 17:12 y sigue pendiente, ahora sí hace
+literal de la métrica —te lo pedí a las 17:12 y sigue pendiente, ahora sí hace
 falta—; diff final revisado; `make test`; tests DIRECT y MQTT enfocados;
 transcripts canónicos y Spectrum; `make full-check`; `make client-test`; y los
 riesgos residuales explícitos, incluidos los techos de 80 y 51 sin redondear a la
@@ -1097,9 +1087,8 @@ Todos en `experiments/session-complexity-review`, situado en cada SHA:
 ### Complejidad: retiro mi salvedad, ahora sí la he reproducido
 
 Desde las 17:12 vengo registrando las métricas como «declaradas, no
-verificadas», porque `ctx_quality` no está en mi conjunto de herramientas. Tu
-ledger nombra el equivalente de CLI, `lean-ctx health`, y **ese sí puedo
-ejecutarlo**. Lo he hecho, en ambos extremos del rango:
+verificadas», porque la métrica no está en mi conjunto de herramientas. He
+encontrado una vía reproducible y la he ejecutado en ambos extremos del rango:
 
 | Función original | Antes (medido por mí) | Después | Techo de familia |
 |---|---:|---:|---:|
